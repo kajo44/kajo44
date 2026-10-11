@@ -1,0 +1,482 @@
+APRJ NEXT — PETA PENGEMBANGAN, FITUR, ALAMAT, DAN CHECKPOINT
+Versi dokumen: 1.0
+Tanggal acuan: 2026-10-12
+Repositori: https://github.com/kajo44/Kzoan
+Branch kerja: crg_aprj
+
+================================================================
+1. TUJUAN DOKUMEN
+================================================================
+Dokumen ini menjadi satu titik acuan agar pengembangan APRJ Next:
+- tepat sasaran dan tidak mengulang analisis dari awal;
+- memakai alamat file dan tautan repositori yang konsisten;
+- menjaga fitur yang sudah ada saat melakukan perubahan;
+- menghemat resource pengembangan, pengujian, dan runtime;
+- membedakan hal yang sudah diperiksa dari hal yang belum dibuktikan;
+- mempunyai checkpoint yang jelas sebelum lanjut ke fitur berikutnya.
+
+ATURAN KERJA:
+1. Baca dokumen ini sebelum mengubah arsitektur atau fitur.
+2. Kerjakan satu checkpoint pada satu waktu.
+3. Periksa file yang benar-benar terdampak sebelum mengedit.
+4. Jangan mengganti nama file atau memindahkan modul tanpa memperbarui import,
+   build script, dokumentasi, dan pemeriksaan.
+5. File compatibility lama hanya boleh dihapus setelah import modul aktif, entry point, dokumentasi, dan build script diperiksa. Penghapusan harus dicatat di checkpoint.
+6. Setelah perubahan, jalankan pemeriksaan sintaks otomatis dan tes terarah.
+7. Jangan menyatakan build atau fitur berhasil jika belum dijalankan dan diuji.
+8. Hindari menambah dependency baru kecuali ada manfaat terukur dan kebutuhan nyata.
+9. Gunakan data uji kecil sebelum menjalankan pemrosesan dataset besar.
+10. Setiap perubahan harus menyebut file yang diubah, alasan, tes, dan hasil.
+
+================================================================
+2. ALAMAT UTAMA
+================================================================
+Repositori:
+https://github.com/kajo44/Kzoan
+
+Branch kerja:
+https://github.com/kajo44/Kzoan/tree/crg_aprj
+
+Folder aplikasi:
+https://github.com/kajo44/Kzoan/tree/crg_aprj/enterprise
+
+Panduan portable:
+https://github.com/kajo44/Kzoan/blob/crg_aprj/APRJ_PORTABLE_GUIDE.txt
+
+Pemeriksaan sintaks GitHub Actions:
+https://github.com/kajo44/Kzoan/blob/crg_aprj/.github/workflows/aprj-syntax.yml
+
+Riwayat pemeriksaan otomatis:
+https://github.com/kajo44/Kzoan/actions
+
+FILE UTAMA DAN TANGGUNG JAWAB:
+- enterprise/aprj_main.py
+  Entry point resmi untuk menjalankan APRJ Next.
+
+- enterprise/aprj_ui.py
+  Antarmuka utama dan alur interaksi pengguna. Masih berisi beberapa tanggung
+  jawab penyimpanan lokal; pemisahan lebih lanjut perlu dilakukan bertahap.
+
+- enterprise/aprj_core.py
+  Konfigurasi umum dan path aplikasi, dataset, model, cache, log, serta database.
+
+- enterprise/aprj_ai_model.py
+  Definisi model AI yang menjadi acuan arsitektur jaringan saraf.
+
+- enterprise/aprj_training_engine.py
+  Proses training, pemuatan checkpoint model, dan inferensi.
+
+- enterprise/aprj_database.py
+  Integrasi database online/PostgreSQL.
+
+- enterprise/aprj_pkrms.py
+  Utilitas terkait audit dataset dan ekspor/template PKRMS.
+
+- enterprise/requirements.txt
+  Daftar dependency Python. Perubahan dependency harus dibatasi dan diuji.
+
+- enterprise/build_portable.bat
+  Script build Windows portable ONEDIR. Output yang ditargetkan:
+  enterprise/dist/APRJ_Next/APRJ_Next.exe
+  Salin seluruh folder APRJ_Next, bukan hanya file EXE.
+
+- enterprise/requirements-build.txt
+  Dependency tambahan yang hanya dibutuhkan untuk pemaketan Windows.
+
+- enterprise/README.md
+  Panduan penggunaan, persyaratan, alur kerja, lokasi data, dan troubleshooting.
+
+- File compatibility lama (main.py, APRJ_v2.py, core.py, database.py,
+  ai_model.py, pkrms_utils.py, training_engine.py) sudah dihapus setelah
+  pemeriksaan entry point dan modul aktif; aplikasi utama menggunakan nama aprj_*.
+
+================================================================
+3. PETA FITUR
+================================================================
+A. SURVEI JALAN
+Tujuan:
+- memuat dan meninjau foto survei;
+- mengisi/meninjau atribut survei secara manual;
+- menyimpan data survei lokal;
+- melihat preview dan mengekspor data survei.
+
+File utama:
+- enterprise/aprj_ui.py
+- enterprise/aprj_core.py
+
+Checkpoint penerimaan:
+[ ] Aplikasi dapat dibuka dan halaman Survei Jalan tampil.
+[ ] Foto yang dipilih tampil dengan orientasi dan ukuran yang wajar.
+[ ] Navigasi foto tidak membekukan antarmuka.
+[ ] Data dapat disimpan dan dibuka kembali dari SQLite.
+[ ] Ekspor Excel dapat dibuka dan kolomnya sesuai data sumber.
+[ ] Error ditampilkan secara jelas dan dicatat ke log.
+
+B. REKAYASA AI
+Tujuan:
+- mengimpor dataset berlabel;
+- melatih model lokal;
+- menyimpan checkpoint;
+- memeriksa kesiapan checkpoint;
+- menjalankan prediksi foto untuk ditinjau petugas.
+
+File utama:
+- enterprise/aprj_ai_model.py
+- enterprise/aprj_training_engine.py
+- enterprise/aprj_ui.py
+
+Checkpoint penerimaan:
+[ ] Dataset uji kecil dapat diimpor tanpa duplikasi yang tidak perlu.
+[ ] Label kosong atau tidak valid dilaporkan, bukan diam-diam dianggap benar.
+[ ] Training berjalan di luar thread UI agar antarmuka tetap responsif.
+[ ] Pembatalan training ditangani dengan aman.
+[ ] Checkpoint yang disimpan dapat dimuat kembali.
+[ ] Prediksi hanya diterapkan setelah pengguna mengonfirmasi.
+[ ] Metrik validasi dilaporkan dan tidak disamakan dengan jaminan akurasi.
+[ ] Tes menggunakan dataset yang benar-benar berlabel dan representatif.
+
+Catatan penting:
+Model yang ada merupakan CNN yang dilatih dari awal, bukan otomatis model
+pretrained. Hasil prediksi belum boleh dianggap sebagai pengukuran resmi tanpa
+validasi lapangan dan prosedur kalibrasi yang sesuai.
+
+C. PKRMS
+Tujuan:
+- membantu audit data dan foto;
+- menyiapkan template/rekap dan ekspor terkait PKRMS.
+
+File utama:
+- enterprise/aprj_pkrms.py
+- enterprise/aprj_ui.py
+
+Checkpoint penerimaan:
+[ ] Ekspor berhasil dibuat dan bisa dibuka.
+[ ] Jumlah baris dan catatan cocok dengan data sumber.
+[ ] Nilai kosong, duplikat, dan format yang salah ditandai.
+[ ] Kolom dan format dicocokkan dengan template resmi yang digunakan.
+[ ] Dokumen ekspor tidak diklaim resmi sebelum diverifikasi terhadap skema resmi.
+
+D. INTEGRASI ONLINE
+Tujuan:
+- menguji koneksi PostgreSQL;
+- menyinkronkan catatan survei;
+- menyediakan alur ekspor/awal kerja Colab bila digunakan.
+
+File utama:
+- enterprise/aprj_database.py
+- enterprise/aprj_ui.py
+- enterprise/requirements.txt
+
+Checkpoint penerimaan:
+[ ] Aplikasi tetap dapat digunakan tanpa koneksi internet.
+[ ] Kegagalan koneksi ditampilkan tanpa menghilangkan data lokal.
+[ ] Kredensial tidak ditulis langsung ke source code atau log.
+[ ] Sinkronisasi dapat diuji dengan data contoh dan tidak membuat duplikasi.
+[ ] Operasi online yang belum diuji ditandai sebagai belum terverifikasi.
+
+E. BUILD PORTABLE WINDOWS
+File utama:
+- enterprise/build_portable.bat
+- enterprise/requirements.txt
+- enterprise/aprj_main.py
+
+Checkpoint penerimaan:
+[ ] Build dijalankan pada Windows dan versi Python yang didukung.
+[ ] PyInstaller selesai tanpa error.
+[ ] File dist/APRJ_Next/APRJ_Next.exe tersedia.
+[ ] Seluruh folder hasil build dapat dipindahkan ke komputer uji.
+[ ] Aplikasi dapat dibuka pada komputer target tanpa Python terpisah.
+[ ] Fitur offline dasar diuji di komputer target.
+[ ] Kebutuhan DLL, file data, model, dan lokasi tulis diperiksa.
+
+================================================================
+4. CHECKPOINT PENGEMBANGAN BERURUTAN
+================================================================
+CHECKPOINT 0 — BASELINE DAN INVENTARIS
+Tujuan: memastikan branch dan file acuan sebelum perubahan.
+[ ] Catat commit awal.
+[ ] Periksa struktur file dan dependency.
+[ ] Jalankan pemeriksaan sintaks.
+[ ] Catat fitur yang berhasil diuji dan fitur yang belum diuji.
+Syarat selesai: ada baseline yang dapat dibandingkan.
+
+CHECKPOINT 1 — STABILITAS ENTRY POINT DAN KONFIGURASI
+File:
+- aprj_main.py
+- aprj_core.py
+- aprj_ui.py
+- build_portable.bat
+[ ] Pastikan entry point tunggal untuk build.
+[ ] Pastikan path data konsisten dalam mode Python dan mode executable.
+[ ] Pastikan folder data/cache/log dibuat dengan aman.
+[ ] Pastikan compatibility shim tidak menyebabkan circular import.
+Syarat selesai: aplikasi dapat diimpor dan dijalankan dalam lingkungan uji.
+
+CHECKPOINT 2 — PENYIMPANAN LOKAL
+File:
+- aprj_ui.py
+- aprj_core.py
+[ ] Uji simpan, baca, edit, dan ekspor.
+[ ] Uji path database yang tidak bergantung pada current working directory.
+[ ] Uji pemulihan saat aplikasi ditutup tidak normal.
+[ ] Evaluasi pemisahan SQLite ke modul tersendiri hanya setelah baseline stabil.
+Syarat selesai: tidak ada kehilangan data pada skenario uji dasar.
+
+CHECKPOINT 3 — MODEL DAN TRAINING AI
+File:
+- aprj_ai_model.py
+- aprj_training_engine.py
+- aprj_ui.py
+[ ] Pastikan training dan inferensi memakai arsitektur model yang sama.
+[ ] Uji checkpoint baru: simpan, muat, prediksi.
+[ ] Uji checkpoint rusak atau tidak kompatibel: tampilkan pesan yang jelas.
+[ ] Uji dataset kecil sebelum dataset produksi.
+[ ] Ukur waktu, RAM, dan ukuran checkpoint pada perangkat sasaran.
+Syarat selesai: alur training/prediksi lolos tes teknis; akurasi lapangan tetap
+perlu dinilai terpisah.
+
+CHECKPOINT 4 — EKSPOR DAN PKRMS
+File:
+- aprj_pkrms.py
+- aprj_ui.py
+[ ] Cocokkan hasil dengan template resmi yang dipakai.
+[ ] Uji record kosong, data ganda, karakter khusus, dan jumlah data besar.
+[ ] Catat batasan ekspor yang belum didukung.
+Syarat selesai: hasil ekspor tervalidasi terhadap sumber dan template acuan.
+
+CHECKPOINT 5 — SINKRONISASI ONLINE
+File:
+- aprj_database.py
+- aprj_ui.py
+[ ] Uji tanpa internet.
+[ ] Uji kredensial salah dan server tidak tersedia.
+[ ] Uji pengiriman ulang tanpa membuat record ganda.
+[ ] Uji dengan database uji, bukan database produksi.
+Syarat selesai: sinkronisasi dapat dipulihkan dari kegagalan tanpa kehilangan
+data lokal.
+
+CHECKPOINT 6 — BUILD DAN UJI PORTABLE
+File:
+- build_portable.bat
+- requirements.txt
+- seluruh modul utama
+[ ] Build ONEDIR di Windows.
+[ ] Jalankan executable hasil build.
+[ ] Salin ke folder/komputer uji lain.
+[ ] Uji operasi offline dan lokasi simpan.
+[ ] Simpan log hasil build dan daftar masalah.
+Syarat selesai: build dan smoke test portable lulus pada lingkungan sasaran.
+
+CHECKPOINT 7 — OPTIMASI TERUKUR
+[ ] Catat baseline waktu proses, penggunaan RAM, dan ukuran output.
+[ ] Identifikasi bottleneck dengan pengukuran, bukan dugaan.
+[ ] Optimalkan hanya komponen yang terbukti menjadi bottleneck.
+[ ] Jalankan ulang tes regresi setelah optimasi.
+Syarat selesai: ada angka sebelum/sesudah dan fungsi tidak rusak.
+
+================================================================
+5. ATURAN EFISIENSI RESOURCE
+================================================================
+PENGEMBANGAN:
+- Ubah file sekecil mungkin untuk menyelesaikan satu masalah.
+- Hindari menulis ulang modul besar jika perubahan lokal sudah cukup.
+- Gunakan tes sintaks dan tes unit kecil sebelum tes integrasi.
+- Jangan mengulang pemindaian seluruh repository jika hanya satu file berubah.
+- Jangan menambah framework/dependency hanya demi abstraksi yang belum dibutuhkan.
+- Jangan melakukan build portable pada setiap perubahan teks; lakukan setelah
+  pemeriksaan sintaks lulus dan perubahan menyentuh build/runtime.
+- Jangan memproses seluruh dataset produksi saat menguji bug.
+
+RUNTIME APLIKASI:
+- Jalankan operasi berat di worker/background thread, bukan di UI thread.
+- Muat foto saat dibutuhkan; hindari menyimpan seluruh foto resolusi penuh di RAM.
+- Gunakan cache berbatas ukuran dan bersihkan cache secara aman.
+- Hindari memuat model AI berulang kali untuk setiap foto bila model yang sama
+  masih dapat digunakan dengan aman.
+- Proses dataset secara bertahap/batch; sediakan progress dan pembatalan.
+- Hindari duplikasi file gambar tanpa kebutuhan.
+- Gunakan query dan indeks SQLite sesuai pola akses yang terukur.
+- Hindari mengirim foto ke layanan online secara otomatis; data tetap lokal kecuali
+  pengguna secara eksplisit memilih fitur online.
+- Untuk training, gunakan batch size yang sesuai RAM/VRAM dan berikan pesan jika
+  resource tidak mencukupi.
+
+PRINSIP:
+Jangan mengoptimalkan berdasarkan perkiraan saja. Ukur waktu, RAM, penggunaan CPU,
+ukuran dataset, dan hasil sebelum serta sesudah perubahan.
+
+================================================================
+6. FORMAT CATATAN SETIAP PERUBAHAN
+================================================================
+Untuk setiap pekerjaan, catat:
+
+Tanggal:
+Checkpoint:
+Masalah/tujuan:
+File yang diperiksa:
+File yang diubah:
+Perubahan yang dilakukan:
+Alasan teknis:
+Tes yang dijalankan:
+Hasil tes:
+Resource yang diukur (jika relevan):
+Risiko/regresi yang masih terbuka:
+Commit:
+Status: BELUM MULAI / BERJALAN / LULUS / GAGAL / TERBLOKIR
+
+Jangan menandai LULUS jika tes terkait belum dijalankan.
+
+================================================================
+7. STATUS AWAL YANG DIKETAHUI
+================================================================
+Diketahui dari pemeriksaan repositori:
+- Branch kerja: crg_aprj.
+- Modul bernama aprj_* sudah ditambahkan.
+- File bernama lama dipertahankan sebagai compatibility shim.
+- Build script telah diarahkan ke aprj_main.py dan nama output APRJ_Next.
+- Konfigurasi path dipusatkan di aprj_core.py.
+- Training engine diarahkan untuk memakai definisi model dari aprj_ai_model.py.
+- GitHub Actions pemeriksaan sintaks berhasil pada commit rekonstruksi terakhir
+  yang diperiksa.
+
+Belum terbukti hanya dari pemeriksaan sintaks:
+- build executable Windows berhasil;
+- executable portable berjalan pada komputer lain;
+- seluruh fungsi GUI berjalan benar;
+- model AI memiliki akurasi yang layak untuk penggunaan operasional;
+- ekspor PKRMS sesuai seluruh persyaratan resmi;
+- integrasi PostgreSQL berhasil dengan server/credential nyata.
+
+================================================================
+8. DEFINISI SELESAI
+================================================================
+Sebuah checkpoint baru dinyatakan selesai jika:
+1. Perubahan sesuai tujuan dan ruang lingkup.
+2. Tes yang relevan benar-benar dijalankan.
+3. Hasil tes dan batasan dicatat.
+4. Tidak ada regresi yang diketahui pada fitur terkait.
+5. Commit dan file yang berubah dapat dilacak.
+6. Tidak ada klaim bahwa fitur telah teruji melebihi bukti yang tersedia.
+
+Akhir dokumen.
+
+
+================================================================
+9. CATATAN PERUBAHAN — 2026-10-12
+================================================================
+Checkpoint: pemeriksaan awal kualitas label PKRMS
+Masalah/tujuan:
+- Normalisasi label sebelumnya dapat mengklasifikasikan frasa "tidak baik"
+  sebagai "baik" karena pencarian substring.
+- Workflow CI sebelumnya hanya mengompilasi sintaks dan tidak menjalankan tes regresi.
+
+File yang diubah:
+- enterprise/aprj_pkrms.py
+- enterprise/tests/test_pkrms.py (baru)
+- .github/workflows/aprj-syntax.yml
+
+Perubahan:
+- Normalisasi label menolak frasa positif yang dinegasikan atau ambigu.
+- Label tidak dikenal dikembalikan sebagai None agar tidak ditebak.
+- Ditambahkan tes regresi untuk label standar, variasi penulisan, frasa negatif,
+  dan nilai yang tidak dikenal.
+- CI kini menjalankan compileall dan unittest dengan dependency minimum openpyxl.
+
+Hasil terverifikasi:
+- GitHub Actions "APRJ Python Syntax and Tests" berhasil pada commit
+  50d508e7bb3cf9215e67b09ec0f4877e1c2e3e57.
+- URL: https://github.com/kajo44/Kzoan/actions/runs/38165173630
+
+Batasan:
+- Ini hanya checkpoint tes unit dan sintaks.
+- Build Windows, uji GUI, uji training AI, PostgreSQL nyata, dan validasi skema
+  PKRMS resmi masih belum dilakukan; jangan menyatakan aplikasi lengkap operasional.
+
+Status: LULUS untuk normalisasi label dan tes CI; CHECKPOINT 0/runtime keseluruhan
+masih BERJALAN.
+
+
+KOREKSI VALIDASI LANJUTAN:
+- Tes tambahan menemukan frasa "tidak buruk" dan "belum rusak berat" sempat salah
+  diklasifikasikan karena pola negasi belum diterapkan dengan benar.
+- Pola regex diperbaiki dan tes regresi dijalankan kembali.
+- Hasil terbaru LULUS pada commit fb2bf6290070f69060aabad0a52a2c12d9ecde3a:
+  https://github.com/kajo44/Kzoan/actions/runs/38165271037
+- Status ini berlaku untuk kompilasi sintaks Python dan tes unit normalisasi label,
+  bukan bukti bahwa build Windows atau seluruh aplikasi telah lulus uji operasional.
+
+
+================================================================
+CHECKPOINT MODUL GEOSPASIAL JALAN — 2026-10-12
+================================================================
+Nama yang ditampilkan di aplikasi dan dokumentasi: Modul Geospasial Jalan.
+
+Implementasi yang sudah masuk ke branch crg_aprj:
+- enterprise/aprj_geospasial.py
+  Mesin indeks GPS ExifTool batch, database terpisah, pembacaan KML/GeoJSON,
+  STA, pencarian kandidat dalam radius, status pekerjaan, dan ekspor CSV.
+- enterprise/aprj_ui.py
+  Panel Modul Geospasial Jalan pada tab PKRMS, pekerjaan di worker thread,
+  progres/batal, tabel hasil, membuka foto ke Survei Jalan, membuka foto untuk
+  verifikasi AI, dan sheet Pemetaan STA pada ekspor PKRMS.
+- enterprise/build_portable.bat
+  Memasukkan modul baru dan folder bin ke build; memeriksa ExifTool.
+- enterprise/tests/test_geospasial.py
+  Tes unit geometri STA, jarak, GeoJSON, dan penyimpanan hasil.
+- APRJ_PORTABLE_GUIDE.txt
+  Panduan ExifTool dan batasan modul.
+
+Database penilaian yang lama tidak dimigrasikan atau diubah. Hasil geospasial
+disimpan di data/geospatial.sqlite3. CLEAN hanya membersihkan cache AI dan
+cache geospasial yang dikenal, bukan database atau hasil.
+
+BELUM DIVERIFIKASI PADA MESIN TARGET:
+- Build Windows/PyInstaller dan pembukaan GUI secara nyata.
+- Pemrosesan folder jutaan foto, pemulihan setelah daya terputus, serta performa.
+- Kesesuaian geometri/STA dengan sumber GIS tertentu dan akurasi hasil lapangan.
+- Penempatan ExifTool yang sebenarnya pada mesin pengguna.
+- Alur impor dataset AI otomatis: untuk tahap ini, foto kandidat dibuka untuk
+  verifikasi manusia; label tidak dibuat otomatis dan belum otomatis masuk ke
+  dataset training.
+
+Langkah validasi berikutnya: periksa hasil GitHub Actions setelah commit tes,
+jalankan tes Windows pada folder foto kecil, lalu ukur waktu dan penggunaan memori
+sebelum menguji koleksi besar.
+
+
+================================================================
+CHECKPOINT EVALUASI ENTERPRISE DAN PANDUAN — 2026-10-12
+================================================================
+Tujuan:
+- mengevaluasi struktur dependency/build dan panduan pemakaian;
+- mengurangi file yang tidak diperlukan entry point aktif;
+- membedakan dependency runtime dari dependency build;
+- menjelaskan batasan yang belum teruji.
+
+Perubahan:
+- enterprise/README.md ditambahkan sebagai panduan pengguna dan operasional.
+- enterprise/requirements.txt difokuskan pada dependency runtime langsung.
+- enterprise/requirements-build.txt ditambahkan untuk dependency build (PyInstaller).
+- enterprise/build_portable.bat kini memasang requirements-build.txt, hanya
+  mengompilasi modul aprj_* aktif, dan menyalin panduan ke folder hasil build.
+- File compatibility lama yang tidak diimpor oleh modul utama dihapus:
+  main.py, APRJ_v2.py, core.py, database.py, ai_model.py,
+  pkrms_utils.py, training_engine.py.
+- APRJ_PORTABLE_GUIDE.txt dan peta pengembangan diperbarui.
+
+Alasan:
+- Entry point build yang didukung adalah aprj_main.py.
+- Modul aktif mengimpor modul dengan prefiks aprj_*.
+- File alias lama hanya meneruskan impor dan tidak diperlukan untuk alur aplikasi
+  yang terdefinisi; bila ada skrip eksternal pengguna yang mengimpor nama lama,
+  skrip tersebut harus diperbarui.
+
+Tes/batasan:
+- Perubahan dokumentasi dan dependency sudah dicatat di branch.
+- Perlu pemeriksaan GitHub Actions setelah commit pembersihan.
+- Belum ada bukti build PyInstaller di Windows, smoke test GUI, uji pindah folder,
+  atau validasi runtime ExifTool setelah pengaturan folder data PyInstaller.
+- Sebelum distribusi, verifikasi bahwa bin/exiftool.exe berada pada lokasi yang
+  dibaca aplikasi dan jalankan uji folder foto kecil.
+
+Status: BERJALAN sampai pemeriksaan otomatis dan smoke test runtime selesai.

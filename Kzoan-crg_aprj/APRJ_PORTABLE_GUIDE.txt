@@ -1,0 +1,91 @@
+APRJ NEXT - APLIKASI SURVEI JALAN PORTABLE
+=====================================
+
+BUILD
+-----
+1. Gunakan Windows 10/11 64-bit.
+2. Instal Python 3.11 64-bit dari python.org dan pastikan Tcl/Tk ikut terpasang.
+3. Buka folder enterprise, lalu jalankan build_portable.bat.
+4. Hasil build berada di dist\APRJ_Next\APRJ_Next.exe.
+5. Untuk memindahkan aplikasi, salin seluruh folder dist\APRJ_Next, bukan hanya EXE.
+6. Build script memasang PyTorch CPU. GPU CUDA hanya dapat digunakan pada lingkungan
+   yang memang mempunyai instalasi PyTorch/CUDA yang cocok; paket portable ini CPU.
+
+ANTARMUKA TERPADU
+-----------------
+- Survei Jalan: pemuatan foto, penilaian manual, navigasi, preview, penyimpanan
+  SQLite lokal, dan ekspor Excel.
+- Rekayasa AI: impor hasil survei Excel, dataset berlabel, training lokal, penyimpanan
+  checkpoint, pemeriksaan checkpoint, dan prediksi foto untuk ditinjau petugas.
+- PKRMS: template Excel, ekspor catatan survei, audit foto, audit dataset
+  klasifikasi lama, dan ekspor rekap dataset klasifikasi.
+- Integrasi Online: ekspor skrip awal Google Colab, uji koneksi PostgreSQL,
+  dan sinkronisasi catatan survei ke PostgreSQL.
+- Entry point resmi build adalah enterprise/aprj_main.py; UI utama berada di enterprise/aprj_ui.py. File compatibility lama yang tidak diperlukan oleh aplikasi utama telah dikeluarkan dari folder enterprise. Panduan penggunaan rinci berada di enterprise/README.md.
+
+ALUR TRAINING AI
+----------------
+1. Jalankan APRJ.exe dan buka tab Rekayasa AI.
+2. Klik "Pilih Export Excel", lalu pilih file hasil survei yang mempunyai sheet
+   "Hasil Survei Jalan" dan path foto sumber masih bisa diakses.
+3. Periksa pratinjau, lalu klik "Konfirmasi Impor". Foto disalin ke
+   survey_ai\dataset\images dan label disimpan di survey_ai\dataset\labels.json.
+4. Pastikan label hasil survei benar. Label yang kosong tidak diperlakukan sebagai
+   label kelas. Untuk melatih satu tugas klasifikasi, dataset harus mempunyai minimal
+   dua kelas label yang berbeda untuk tugas tersebut.
+5. Atur device, batch, dan epoch, lalu klik "Mulai Training". Training berjalan di
+   thread terpisah; jangan tutup aplikasi sebelum selesai.
+6. Checkpoint disimpan sebagai survey_ai\models\survey_multi_task_model.pth.
+   Ringkasan dan riwayat training disimpan pada survey_ai\training_runs.
+7. Klik "Periksa Kesiapan Model", lalu pilih foto pada tab Survei Jalan dan klik
+   "Prediksi Foto Aktif". Tinjau saran dan konfirmasi sebelum hasil diterapkan ke form.
+   Simpan hasil survei secara manual setelah verifikasi manusia.
+
+BATASAN DAN VALIDASI
+--------------------
+- Training lokal memakai CNN kecil yang diinisialisasi dari awal, bukan model pretrained.
+  Karena itu, kualitas prediksi sangat bergantung pada jumlah, variasi, dan ketepatan
+  label. Training yang berhasil selesai tidak otomatis berarti model akurat.
+- Foto dan label yang diimpor harus berpasangan dengan benar. Foto sumber harus tersedia
+  ketika impor Excel dilakukan. Periksa duplikasi, label kosong/salah, dan ketimpangan kelas.
+- Metrik training/validasi bukan sertifikasi akurasi lapangan. Uji model pada foto terpisah
+  yang tidak digunakan untuk training sebelum dipakai dalam pekerjaan survei.
+- Prediksi lebar perkerasan/bahu/drainase adalah estimasi visual. Foto biasa tidak memberi
+  skala fisik yang andal tanpa kalibrasi, referensi ukuran, atau metode pengukuran tambahan.
+  Jangan gunakan estimasi lebar sebagai ukuran resmi tanpa verifikasi.
+- Probabilitas/confidence model bukan jaminan benar. Semua prediksi harus diperiksa petugas.
+- Ekspor Colab tetap berupa skrip awal, bukan pipeline training Colab lengkap.
+- PostgreSQL memerlukan server yang dapat dijangkau, kredensial yang benar, dan driver.
+- Template PKRMS adalah struktur kerja; kesesuaian dengan skema resmi harus diverifikasi.
+- build_portable.bat menjalankan pemeriksaan sintaks, bukan pengujian GUI/runtime penuh.
+  Build Windows dan performa training belum dikonfirmasi di lingkungan pengembang.
+- Folder aplikasi harus dapat ditulis, misalnya C:\Tools\APRJ. Data AI disimpan di
+  folder survey_ai di samping executable.
+
+
+MODUL GEOSPASIAL JALAN
+----------------------
+Panel Modul Geospasial Jalan tersedia pada tab PKRMS. Fitur saat ini:
+- Indeks metadata GPS foto melalui ExifTool dalam batch.
+- Penyimpanan hasil pada database geospasial terpisah dari database penilaian.
+- Geometri ruas KML atau GeoJSON LineString/MultiLineString.
+- Pencarian kandidat foto per interval STA dan radius dalam meter.
+- Membuka foto kandidat di Survei Jalan atau menyiapkannya untuk pemeriksaan AI.
+- Ekspor CSV hasil pemetaan dan sheet Pemetaan STA pada ekspor PKRMS.
+- Cache terpisah; CLEAN tidak menghapus database atau hasil pemetaan.
+
+PERSIAPAN EXIFTOOL
+------------------
+1. Tempatkan ExifTool Windows pada enterprise\bin\exiftool.exe.
+2. Jika distribusi membutuhkan folder pendamping, salin folder enterprise\bin\exiftool_files beserta isinya.
+3. Build script mencoba menyalin ExifTool dari C:\Tools\ExifTool jika lokasi target belum ada.
+4. Build portable dihentikan jika bin\exiftool.exe tidak ditemukan.
+5. Pastikan folder bin ikut berada di samping executable pada hasil build.
+
+BATASAN MODUL GEOSPASIAL
+------------------------
+- Input geometri saat ini KML dan GeoJSON; format GIS lain perlu dikonversi.
+- Kandidat berstatus Perlu verifikasi. Jarak GPS bukan bukti bahwa foto menggambarkan ruas yang tepat.
+- Foto yang sudah digunakan pada satu STA tidak dipakai kembali pada STA lain dalam pekerjaan yang sama.
+- Indeks inkremental memakai ukuran dan waktu modifikasi file sebagai fingerprint.
+- Sintaks dan tes unit otomatis dijalankan melalui GitHub Actions. Build Windows, UI runtime, dataset besar, dan akurasi lapangan masih perlu diuji pada lingkungan target.

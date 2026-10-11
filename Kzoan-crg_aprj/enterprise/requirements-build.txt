@@ -1,0 +1,3 @@
+# Build-only dependency set for APRJ Next portable packaging.
+-r requirements.txt
+PyInstaller>=6.10,<7
